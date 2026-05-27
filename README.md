@@ -1,480 +1,571 @@
-# Project Outline:  
+# LeRobot SO101 Teleoperation System using Raspberry Pi 5, ROS2, Hand Tracking, and ArUco Markers
 
-This project aim to develop a system for the lerobot so101 arm to follow the hand movements like a wireless VR Remote. 
+## Project Outline
 
+This project aims to develop a system for the **LeRobot SO101 robotic arm** to follow hand movements like a wireless VR remote. The system enables seamless teleoperation using computer vision, IMU orientation tracking, and marker-based motion tracking.
 
+---
 
-# Project Idea \& Implementation: 
+# Project Idea & Implementation
 
+The following components are used for teleoperation:
 
+## Hardware Components
 
-The following components can be used for seamless teleoperation:
+1. Raspberry Pi Camera Module 3  
+2. Raspberry Pi 5  
+3. ArUco Marker Cube (5 cm × 5 cm × 5 cm)  
+4. 10-axis HiWonder IMU (Inertial Measurement Unit)  
+5. LeRobot SO101 Robot Arm  
 
-1\.  Raspberry Pi camera module 3
+---
 
-2\. Raspberry Pi 5
+# Available Methods
 
-3\. ArUco (Augmented Reality University of Cordoba) marker Cube od size 5cm\*5cm\*5cm
+Three different approaches can be implemented:
 
-4\. 10-axis HiWonder IMU(Inertial Measurement Unit)
+1. ROS2-based Teleoperation  
+2. Hand Tracking using Raspberry Pi 5  
+3. ArUco Marker Cube Tracking using Raspberry Pi 5  
 
-5\. LeRobot Robot Arm SO101
+---
 
+# METHOD 1: ROS2 TELEOPERATION
 
+## Overview
 
-There are three distinct methods in which this can be done and implemented:
+This method uses:
 
-1\. Using ROS2 (Robot Operating System)
+- ROS2
+- MoveIt2
+- MediaPipe hand tracking
+- Webcam feed
+- Ubuntu via dual boot or WSL
 
-2\. Hand tracking using Raspberry Pi 5
+Ubuntu installation guide for WSL:
 
-3\. ArUco marker cube and Raspberry Pi 5
+https://documentation.ubuntu.com/wsl/latest/howto/install-ubuntu-wsl2/
 
+ROS2 installation guide for LeRobot:
 
+https://github.com/ycheng517/lerobot-ros
 
-# METHOD: 1. ROS2
+---
 
+# Step 1: Install WSL and Attach Devices
 
+Install usbipd-win using Windows PowerShell:
 
-For using ROS 2, Ubuntu Operating system is required. Any stable version can be used. Either dual boot or WSL (Windows Sub-system for Linux) can be used, for which the installation guide can be found [here](https://documentation.ubuntu.com/wsl/latest/howto/install-ubuntu-wsl2/). After installing WSL or dual booting your system, required version of ROS2 can be downloaded, whose installation guide can be found [here](https://github.com/ycheng517/lerobot-ros).  
+```bash
+winget install --interactive --exact dorssel.usbipd-win
+```
 
+List all devices:
 
+```bash
+usbipd list
+```
 
-After installing WSL, the webcamera should be integrated with the WSL for video feed. Install usbipd-win on windows powershell using following command:
+Attach webcam to WSL:
 
-&#x20;
+```bash
+usbipd attach --wsl --busid <BUSID>
+```
 
-winget install --interactive --exact dorssel.usbipd-win 
+Attach the LeRobot serial port similarly.
 
+---
 
+# Step 2: Install Required Python Libraries
 
-Now, enter the following command to list all the devices: 
+Activate the virtual environment created during ROS2 setup and install:
 
+```bash
+pip install catkin_pkg empy==3.3.4 lark
 
+pip install mediapipe opencv-python numpy scipy transforms3d
 
-usbipd list 
+pip install rclpy geometry-msgs tf2-ros
 
+sudo apt install ros-jazzy-pymoveit2
 
+sudo apt install ros-jazzy-tf2-ros-py
 
-Here, the camera used in the USB2.0 HD UVC WebCam from the laptop. Before attaching any device to the WSL, keep the WSL running in another terminal. To attach the camera to the WSL, run the following command: 
+sudo apt install ros-jazzy-tf2-ros
 
+sudo apt install ros-jazzy-geometry-msgs
 
+sudo apt install ros-jazzy-rclpy
 
-usbipd attach --wsl --busid <BUSID> 
+sudo apt install ros-jazzy-moveit-py \
+ros-jazzy-moveit-ros-planning-interface \
+ros-jazzy-moveit-configs-utils
 
+sudo apt update
+```
 
+---
 
-Attach the port, to which lerobot is connected, to the WSL in similar way.  
+# Step 3: Build Workspace
 
+If package installation fails:
 
+```bash
+rm -rf build/pymoveit2 install/pymoveit2 log/
+```
 
-After installing all the required softwares and tools, proceed to install the libraries required, whose process is given below.  Then after installing ROS2 open the virtual environment that you create (The virtual environment will be created while following the installation guide for ROS2) and install the following libraries: 
+Build workspace:
 
+```bash
+cd ~/lerobot_ws
 
+colcon build --symlink-install --packages-select pymoveit2
+```
 
-pip install catkin\_pkg empy==3.3.4 lark 
+---
 
-pip install mediapipe opencv-python numpy scipy transforms3d 
+# Step 4: Runtime Permissions and Cleanup
 
-pip install rclpy geometry-msgs tf2-ros 
+```bash
+killall -9 python3
 
-sudo apt install ros-jazzy-pymoveit2 
+sudo chmod 777 /dev/video0
 
-sudo apt install ros-jazzy-tf2-ros-py 
+sudo chmod 777 /dev/video1
 
-sudo apt install ros-jazzy-tf2-ros 
+sudo usermod -a -G dialout $USER
 
-sudo apt install ros-jazzy-geometry-msgs 
+sudo usermod -a -G video $USER
 
-sudo apt install ros-jazzy-rclpy 
+ros2 daemon stop
 
-sudo apt install ros-jazzy-moveit-py ros-jazzy-moveit-ros-planning-interface rosjazzy-moveit-configs-utils 
+pkill -9 -f controller_manager
 
-sudo apt update 
+pkill -9 -f spawner
 
+pkill -9 -f ros2
 
+sudo chmod a+rw /dev/ttyACM0
+```
 
-Then build workspace by running the following command, note that the directory where the virtual environment was saved might be different than the directory used here, hence change the directory accordingly.  
+---
 
-&#x20;
+# Step 5: Launch ROS2 Teleoperation
 
-\# While installing packages below, if the package fails then use the command 
+## Terminal 1: Start Motor Driver
 
-attached here to remove the broken packages. 
+```bash
+ros2 launch lerobot_controller so101_controller.launch.py use_sim_time:=false
+```
 
-&#x20;
+## Terminal 2: Camera Teleoperation
 
-Cmd: rm -rf build/pymoveit2 install/pymoveit2 log/ 
+```bash
+python3 camera-teleop.py
+```
 
-&#x20;
+## Terminal 3: MoveIt Bridge
 
-\# Installation of packages 
+```bash
+python3 moveit-bridge.py
+```
 
-cd \~/lerobot\_ws  
+Run all three terminals simultaneously.
 
-colcon build --symlink-install --packages-select pymoveit2 
+---
 
-&#x20;
+# METHOD 2: HAND TRACKING USING RASPBERRY PI 5
 
-To control the robot arm, save the code in a python file named “moveit-bridge.py”. Note that the name of the file can be changed. 
+# Overview
 
-Now the setup is completed and the environment and code is ready to run. Run the command below to give permission and kill unnecessary background processes in order to run the code. 
+This method uses:
 
-&#x20;
+- Raspberry Pi 5
+- MediaPipe
+- Raspberry Pi Camera Module 3
+- IMU orientation tracking
 
-\# kill all other process 
+MediaPipe tracks hand landmarks and estimates x, y, z coordinates. The IMU provides orientation data.
 
-\#kill all python  
+---
 
-killall -9 python3 
+# Step 1: Install Python 3.12.13 using pyenv
 
-&#x20;
+```bash
+sudo apt update
 
-\#give permission 
+sudo apt install -y make build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev \
+liblzma-dev python3-openssl git
 
-sudo chmod 777 /dev/video0 
+curl https://pyenv.run | bash
 
-&#x20;
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
 
-\# If you have video1, run this too: 
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
 
-sudo chmod 777 /dev/video1 
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 
-sudo usermod -a -G dialout $USER 
+exec "$SHELL"
 
-sudo usermod -a -G video $USER 
+pyenv install 3.12.13
+```
 
-\# Stop the ROS 2 background daemon 
+---
 
-ros2 daemon stop 
+# Step 2: Create Project Environment
 
-\# Kill any lingering controller\_manager or spawner processes 
+```bash
+cd /path/to/project/folder
 
-pkill -9 -f controller\_manager 
+pyenv local 3.12.13
 
-pkill -9 -f spawner 
+python3 -m venv myenv
+```
 
-pkill -9 -f ros2 
+Activate environment:
 
+```bash
+source pathTo_myenv/bin/activate
+```
 
+---
 
-\#access to acm0 port 
+# Step 3: Install Core Libraries
 
-sudo chmod a+rw /dev/ttyACM0 
+```bash
+sudo apt update
 
+sudo apt install -y libgl1-mesa-glx libglib2.0-0 \
+libsm6 libxext6 libxrender-dev
+```
 
+Reactivate the environment and install:
 
-\#launch physical driver in terminal 1 to start the motors  
+```bash
+pip install opencv-contrib-python
 
-ros2 launch lerobot\_controller so101\_controller.launch.py use\_sim\_time:=false 
+python -c "import cv2; print(f'OpenCV Version: {cv2.__version__}')"
 
+pip install flask
 
+pip install mediapipe
 
-\#run camera teleop in terminal 2 for the teleoperation to detect the hand movements 
+pip install numpy
 
-python3 camera-teleop.py 
+sudo apt update
 
+sudo apt install python3-picamera2 libcap-dev -y
 
+sudo apt install cmake
 
-\#run bridge teleop in terminal 3 to get values from camera and move the robot to desired 
+sudo apt update && sudo apt upgrade -y
+```
 
-locations 
+---
 
-python3 moveit-bridge.py  # change name here if needed 
+# Step 4: Configure Raspberry Pi Camera
 
+Open configuration file:
 
+```bash
+sudo nano /boot/firmware/config.txt
+```
 
-Make sure to run all these three codes in separate terminals parallelly.
+Add the following at the bottom:
 
+```bash
+# Enable IMX708 Camera Module 3
+camera_auto_detect=1
+dtoverlay=imx708
 
+# Enable I2C and SPI
+dtparam=i2c_arm=on
+dtparam=i2c_vc=on
+dtparam=spi=on
 
-# METHOD: 2. Hand Tracking using Raspberry Pi 5
+# Allocate Camera Memory
+dtoverlay=vc4-kms-v3d,cma-512
+```
 
+Save and reboot:
 
+```bash
+reboot
+```
 
-To use Raspberry Pi to connect and control robot arm like lerobot it is necessary to install the required python version on the Raspberry Pi. The main idea in this method is to control the robot arm using camera and palm tracking lightweight library (media pipe). Media pipe tracks the palm and dynamically calculates the x, y and z axis and updates the coordinates, while the IMU connected to Raspberry tells the orientation of the palm. 
+---
 
+# Step 5: Add Camera Permissions
 
+```bash
+echo 'SUBSYSTEM=="dma_heap", GROUP="video", MODE="0660"' | \
+sudo tee /etc/udev/rules.d/99-raspberrypi-dma-heap.rules
 
-First download any version of Raspberry Pi OS and setup the board. Then create a virtual environment for required python version. Lerobot requires any version of python 3.12.x. This document describes the steps to download python v3.12.13 in particular. 
+sudo udevadm control --reload-rules && sudo udevadm trigger
+```
 
+Add user permissions:
 
+```bash
+sudo usermod -aG video,render,i2c $USER
+```
 
-Run the commands below to install and setup python v3.12.13: 
+Enable I2C modules:
 
+```bash
+echo "i2c-dev" | sudo tee -a /etc/modules
 
+echo "i2c-bcm2835" | sudo tee -a /etc/modules
+```
 
-sudo apt update 
+---
 
-sudo apt install -y make build-essential libssl-dev zlib1g-dev \\libbz2-dev 
+# Step 6: Install Camera Libraries
 
-libreadline-dev libsqlite3-dev wget curl llvm \\ libncurses5-dev 
+```bash
+sudo apt update && sudo apt upgrade -y
 
-libncursesw5-dev xz-utils tk-dev libAi-dev liblzma-dev python3-openssl git 
+sudo apt install -y libcamera-tools libcamera-v4l2
 
-curl https://pyenv.run | bash 
+sudo apt install -y \
+gstreamer1.0-libcamera \
+gstreamer1.0-plugins-base \
+gstreamer1.0-plugins-good \
+gstreamer1.0-plugins-bad \
+python3-gst-1.0
 
-echo 'export PYENV\_ROOT="$HOME/.pyenv"' >> \~/.bashrc 
+sudo apt install -y python3-opencv
 
-echo 'command -v pyenv >/dev/null || export 
+sudo apt install -y i2c-tools
 
-PATH="$PYENV\_ROOT/bin:$PATH"' >> \~/.bashrc 
+sudo apt install -y v4l2loopback-utils
+```
 
-echo 'eval "$(pyenv init -)"' >> \~/.bashrc 
+---
 
-exec "$SHELL" 
+# Step 7: Fix Libcamera Version Errors
 
-pyenv install 3.12.13 
+```bash
+sudo ln -sf /usr/lib/aarch64-linux-gnu/libcamera.so.0.5.2 \
+/usr/lib/aarch64-linux-gnu/libcamera.so.0.7
 
+sudo ln -sf /usr/lib/aarch64-linux-gnu/libcamera-base.so.0.5.2 \
+/usr/lib/aarch64-linux-gnu/libcamera-base.so.0.7
 
+sudo ldconfig
+```
 
-The below command sets the mentioned python as the default version in that directory. Hence create a new folder for the project. 
+---
 
-Set path as per the requirement and run the command below: 
+# Step 8: Configure GStreamer
 
+```bash
+echo 'export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0' >> ~/.bashrc
 
+source ~/.bashrc
 
-cd /path/to/your/project/folder 
+pip install Flask
+```
 
-pyenv local 3.12.13 
+---
 
+# Step 9: Run Camera Scripts
 
+Use this format:
 
-Then create the virtual environment by running the command below: 
+```bash
+libcamerify python3 codeName.py
+```
 
+Test camera stream:
 
+```bash
+libcamerify python3 camera-livestream.py
+```
 
-python3 -m venv myenv 
+---
 
+# Step 10: Find Raspberry Pi IP Address
 
+```bash
+hostname -I
+```
 
-The virtual environment can be named anything, replace myenv with the name otherwise the default name of the environment will be myenv. After creating the virtual environment, activate the virtual environment by running the command below: 
+Replace:
 
+```text
+yourPi_IpAddress
+```
 
+with the actual Raspberry Pi IP address.
 
-source pathTo\_myenv/bin/activate 
+---
 
+# Step 11: IMU and Hand Tracking
 
+Before running IMU scripts, calibrate the LeRobot arm:
 
-To confirm whether the virtual environment is active or not, the system name can be checked as it changes to the name of the virtual environment.  
+https://huggingface.co/docs/lerobot/so101?example=Linux
 
-After activating the environment install all the required packages and libraries by following the steps below:
+Run:
 
+```bash
+python3 imu-data-stream.py
+```
 
+Then run the hand tracking scripts.
 
-sudo apt update 
+It is recommended to recalibrate the robot before testing.
 
-sudo apt install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev 
+---
 
+# METHOD 3: ArUco Marker Cube Teleoperation
 
+# Overview
 
-By executing the above command, it will send you out of the virtual environment, now activate your environment again and install all the libraries using the following command.
+This method uses a 3D cube with ArUco markers attached to five sides.
 
-Generally, pip install will automatically install the required version of the library, but in case if any installation for any of the libraries below fails then check the compatible version of that library with python 3.12.13 and install that specific version. 
+The robot arm follows the cube motion like a puppet.
 
+---
 
+# Required Libraries
 
-pip install opencv-contrib-python 
+```bash
+pip install opencv-contrib-python numpy Flask pyserial
+```
 
-python -c "import cv2; print(f'OpenCV Version: {cv2.\_\_version\_\_}')" 
+---
 
-pip install flask 
+# Step 1: Generate ChArUco Calibration Board
 
-pip install mediapipe 
+Use:
 
-pip install numpy 
+```text
+ChArUco-board-generator.py
+```
 
-sudo apt update 
+This generates the calibration board used for camera calibration.
 
-sudo apt install python3-picamera2 libcap-dev -y 
+---
 
-sudo apt install cmake 
+# Step 2: Camera Calibration
 
-sudo apt update \&\& sudo apt upgrade -y 
+Run:
 
+```bash
+python3 camera-calibration.py
+```
 
+Open the live stream website.
 
-Mediapipe requires camera and since camera cannot be accessed directly, the live feed from the camera can be streamed on local host and be accessed through the browser. In order to do these extra libraries are required. To install these libraries, follow the steps below: 
+Capture 20 frames from different angles and distances.
 
+Keep the ChArUco board flat and stationary.
 
+After capturing:
 
-To detect the camera, we need to make changes in the configuration files, to do that run the command below and paste the changes mentioned. 
+- Click "Finish & Calibrate"
+- A file named `camera_matrix.npz` will be generated
 
+This file stores camera calibration parameters.
 
+---
 
-command: sudo nano /boot/firmware/config.txt 
+# Step 3: Generate ArUco Marker Cube
 
+Run:
 
+```bash
+python3 marker-generator.py
+```
 
-Changes to be made in the file are below, copy paste them at the bottom of the configuration file -- 
+Generated marker images will be saved automatically.
 
+Print and attach them to a perfectly aligned 5 cm cube.
 
+Leave one face open if needed.
 
-Changes 
+---
 
+# Step 4: Run ArUco Teleoperation
 
+Ensure:
 
-\# Enable the IMX708 (Camera Module 3) 
+- `camera_matrix.npz` exists
+- Correct ACM port is selected
 
-camera\_auto\_detect=1 
+Run:
 
-dtoverlay=imx708  
+```bash
+python3 ArUco-marker-teleoperation.py
+```
 
-\# Enable I2C and SPI buses for sensors/servo drivers 
+The robot arm will now track cube movement in real time.
 
-dtparam=i2c\_arm=on 
+---
 
-dtparam=i2c\_vc=on 
+# Recommended Project Structure
 
-dtparam=spi=on 
+```text
+project-folder/
+│
+├── camera-teleop.py
+├── moveit-bridge.py
+├── camera-livestream.py
+├── imu-data-stream.py
+├── camera-calibration.py
+├── marker-generator.py
+├── ArUco-marker-teleoperation.py
+├── camera_matrix.npz
+└── generated_markers/
+```
 
-\# Allocate Memory for High-Res Camera Frames (Critical Fix for CMA BuAer Error) 
+---
 
-dtoverlay=vc4-kms-v3d, cma-512 
+# Final Notes
 
+## Recommended Workflow
 
+### ROS2 Method
+Best for:
+- Full robotics stack
+- MoveIt integration
+- Precise control
+- Multi-node systems
 
-After pasting, press ctrl+o then enter then ctrl+x to save and exit. After saving and exiting reboot the board by running the following command: 
+### Hand Tracking Method
+Best for:
+- Lightweight setup
+- Portable teleoperation
+- Real-time hand interaction
 
+### ArUco Method
+Best for:
+- Stable pose estimation
+- Low computational overhead
+- Reliable spatial tracking
 
+---
 
-reboot 
+# Important Recommendations
 
+1. Calibrate the robot before every major test session.  
+2. Use adequate lighting for MediaPipe and ArUco detection.  
+3. Keep camera latency low for smoother teleoperation.  
+4. Ensure ACM port names are correct before launching scripts.  
+5. Use a powered USB hub if multiple devices are connected to Raspberry Pi.  
 
+---
 
-After making changes in the configuration file, permissions are required to read from the camera through I2C and/or other protocols. To grant permissions run the following commands.
+# Expected Output
 
+The LeRobot SO101 arm should:
 
-
-echo 'SUBSYSTEM=="dma\_heap", GROUP="video", MODE="0660"' | sudo tee /etc/udev/rules.d/99-raspberrypi-dma-heap.rules 
-
-sudo udevadm control --reload-rules \&\& sudo udevadm trigger  
-
-
-
-After this, user permission is required to get that run the command below: 
-
-
-
-sudo usermod -aG video, render, i2c $USER 
-
-
-
-Now the camera needs to be connected to I2C module in order to get the feed from the camera, run the following commands: 
-
-
-
-echo "i2c-dev" | sudo tee -a /etc/modules 
-
-echo "i2c-bcm2835" | sudo tee -a /etc/modules 
-
-
-
-After giving permissions, we need libraries to access the camera, to download the libraries follow the steps below: 
-
-
-
-sudo apt update \&\& sudo apt upgrade -y 
-
-sudo apt install -y libcamera-tools libcamera-v4l2 
-
-sudo apt install -y gstreamer1.0-libcamera gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad python3-gst-1.0 
-
-sudo apt install -y python3-opencv 
-
-sudo apt install -y i2c-tools 
-
-sudo apt install -y v4l2loopback-utils 
-
-
-
-Libcamera might throw some unwanted and unexpected error stating that it cannot open shared object file when libcamerify demanded v0.7 but you have v0.5.2, symbolic links are required to resolve this issue, follow the commands below: 
-
-
-
-sudo ln -sf /usr/lib/aarch64-linux-gnu/libcamera.so.0.5.2 /usr/lib/aarch64-linuxgnu/libcamera.so.0.7 
-
-sudo ln -sf /usr/lib/aarch64-linux-gnu/libcamera-base.so.0.5.2 /usr/lib/aarch64linux-gnu/libcamera-base.so.0.7 
-
-sudo ldconfig 
-
-&#x20;
-
-To stream from the camera, it requires an additional tool called g-stream to install follow command below: 
-
-&#x20;
-
-echo 'export GST\_PLUGIN\_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0' >> \~/.bashrc 
-
-source \~/.bashrc 
-
-&#x20;
-
-pip install Flask 
-
-&#x20;
-
-After this to run any code, one can use the following format: 
-
-&#x20;
-
-libcamerify python3 codeName.py 
-
-&#x20;
-
-This way the camera uses resources from the library and streams directly. Use the camera-livestream.py code to test the live feed from the camera.
-
-
-
-To find the IP address of Raspberry Pi, connect the board to an external monitor and by hovering the cursor on the wifi symbol on the top right corner you can find the IP address, or the code below can be run in the terminal of the Raspberry Pi to find the IP address: 
-
-
-
-Cmd: hostname -I 
-
-
-
-Wherever the code shows yourPi\_IpAddress replace it with the IP address of the Raspberry Pi that is being used.  To check if the stream is working go to the website mentioned and reload the website multiple times to troubleshoot till the feed is live.  The code for testing and readding values from the IMU. Before running the imu-data-stream.py code, lerobot needs to be calibrated, for which the documentation can be found [here](https://huggingface.co/docs/lerobot/so101?example=Linux).
-
-
-
-After testing the camera and imu, Hand tracking can now be done using the given two codes. It is advised to calibrate the robot before testing the code. If lerobot is already calibrated before imu code, then this step can be skipped. The code for hand tracking is provided.
-
-
-
-# METHOD: 3. ArUco Marker Codes: 
-
-
-
-This section aims to move the Lerobot according to the movements of the ArUco marker cube (a 3D-printed cube with ArUco markers on 5 sides). These codes for ArUco marker cube are generated using python codes which are provided in this section. 
-
-
-
-Calibration of camera is required in order to identify the ArUco markers. For calibration, use the ChArUco (chessboard ArUco) board which can be generated by python codes. The ChArUco-board-generator.py can be used to generate the calibration board. he ArUco codes for the cube are generated by the marker-generator.py. The camera can be calibrated using the camera-calibration.py.
-
-&#x20;
-
-Install the following libraries before starting: 
-
-
-
-pip install opencv-contrib-python numpy Flask pyserial 
-
-
-
-
-
-Enter the IP address of your Raspberry Pi instead of YourPi\_Ipaddress.     
-
-&#x20;                         
-
-After running camera-calibration.py in the terminal, the live streaming site will be active. The website waits for 20 frames to be clicked. Click 20 pictures at different angles and from different distances. Remember to keep the ChArUco board on a still, flat surface like cardboard. Finish the calibration by clicking 20 different frames and click on the Finish \& Calibrate button. A new file named “camera\_matrix.npz” will be created in the same directory as the camera-calibration python file. 
-
-
-
-Run marker-generator.py in the Python terminal, and it can be seen that the ArUco codes generated and saved in the same way as the marker-generating code. Paste this generated ArUco code on a 3D-printed cube or geometrically perfect cube of size 5cm\*5cm\*5cm. Remove the sixth side and attach the five sides on the cube.  
-
-
-
-Save ArUco-marker-teleoperation.py in the same directory as the camera-calibration code. After running ArUco-marker-teleoperation.py code, the live stream turns active on the site. As the cube with the ArUco marker is moved, the Lerobot starts moving like a puppet. Ensure to check and update the port to which the Lerobot is connected (ACM0 for this code). 
-
+- Follow hand position and orientation
+- Replicate cube movement in real time
+- Support wireless teleoperation
+- Operate using camera and IMU fusion
+- Work with ROS2 or standalone Raspberry Pi pipelines
