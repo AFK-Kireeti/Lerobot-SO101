@@ -17,7 +17,7 @@ There are three distinct methods in which this can be done and implemented:
 
 # METHOD: 1. ROS2
 
-For using ROS 2, Ubuntu Operating system is required. Any stable version can be used. Either dual boot or WSL (Windows Sub-system for Linux) can be used, for which the installation guide can be found here. After installing WSL or dual booting your system, required version of ROS2 can be downloaded, whose installation guide can be found here.  
+For using ROS 2, Ubuntu Operating system is required. Any stable version can be used. Either dual boot or WSL (Windows Sub-system for Linux) can be used, for which the installation guide can be found [here](https://documentation.ubuntu.com/wsl/latest/howto/install-ubuntu-wsl2/). After installing WSL or dual booting your system, required version of ROS2 can be downloaded, whose installation guide can be found [here](https://github.com/ycheng517/lerobot-ros).  
 
 After installing WSL, the webcamera should be integrated with the WSL for video feed. Install usbipd-win on windows powershell using following command:
  
@@ -222,7 +222,7 @@ To find the IP address of Raspberry Pi, connect the board to an external monitor
 
 Cmd: hostname -I 
 
-Wherever the code shows yourPi_IpAddress replace it with the IP address of the Raspberry Pi that is being used.  To check if the stream is working go to the website mentioned and reload the website multiple times to troubleshoot till the feed is live.  The code for testing and readding values from the IMU. Before running the imu-data-stream.py code, lerobot needs to be calibrated, for which the documentation can be found here.
+Wherever the code shows yourPi_IpAddress replace it with the IP address of the Raspberry Pi that is being used.  To check if the stream is working go to the website mentioned and reload the website multiple times to troubleshoot till the feed is live.  The code for testing and readding values from the IMU. Before running the imu-data-stream.py code, lerobot needs to be calibrated, for which the documentation can be found [here](https://huggingface.co/docs/lerobot/so101?example=Linux).
 
 After testing the camera and imu, Hand tracking can now be done using the given two codes. It is advised to calibrate the robot before testing the code. If lerobot is already calibrated before imu code, then this step can be skipped. The code for hand tracking is provided.
 
