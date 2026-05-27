@@ -1,10 +1,10 @@
-Project Outline:  
+# Project Outline:  
 
 This project aim to develop a system for the lerobot so101 arm to follow the hand movements like a wireless VR Remote. 
 
 
 
-Project Idea \& Implementation: 
+# Project Idea \& Implementation: 
 
 
 
@@ -32,7 +32,7 @@ There are three distinct methods in which this can be done and implemented:
 
 
 
-METHOD: 1. ROS2
+# METHOD: 1. ROS2
 
 
 
@@ -188,7 +188,7 @@ Make sure to run all these three codes in separate terminals parallelly.
 
 
 
-METHOD: 2. Hand Tracking using Raspberry Pi 5
+# METHOD: 2. Hand Tracking using Raspberry Pi 5
 
 
 
@@ -442,7 +442,7 @@ After testing the camera and imu, Hand tracking can now be done using the given 
 
 
 
-METHOD: 3. ArUco Marker Codes: 
+# METHOD: 3. ArUco Marker Codes: 
 
 
 
