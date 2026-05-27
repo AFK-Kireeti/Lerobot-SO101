@@ -1,7 +1,7 @@
-Project Outline:  
+# Project Outline:  
 This project aim to develop a system for the lerobot so101 arm to follow the hand movements like a wireless VR Remote. 
 
-Project Idea & Implementation: 
+# Project Idea & Implementation: 
 
 The following components can be used for seamless teleoperation:
 1.  Raspberry Pi camera module 3
@@ -15,7 +15,7 @@ There are three distinct methods in which this can be done and implemented:
 2. Hand tracking using Raspberry Pi 5
 3. ArUco marker cube and Raspberry Pi 5
 
-METHOD: 1. ROS2
+# METHOD: 1. ROS2
 
 For using ROS 2, Ubuntu Operating system is required. Any stable version can be used. Either dual boot or WSL (Windows Sub-system for Linux) can be used, for which the installation guide can be found here. After installing WSL or dual booting your system, required version of ROS2 can be downloaded, whose installation guide can be found here.  
 
@@ -48,53 +48,55 @@ sudo apt update
 
 Then build workspace by running the following command, note that the directory where the virtual environment was saved might be different than the directory used here, hence change the directory accordingly.  
  
-# While installing packages below, if the package fails then use the command 
-attached here to remove the broken packages. 
+While installing packages below, if the package fails, then use the command attached here to remove the broken packages. 
  
 Cmd: rm -rf build/pymoveit2 install/pymoveit2 log/ 
  
-# Installation of packages 
+Building after Installation of packages:
+
 cd ~/lerobot_ws  
 colcon build --symlink-install --packages-select pymoveit2 
  
-To control the robot arm, save the code in a python file named “moveit-bridge.py”. Note that the name of the file can be changed. 
+To control the robot arm, save the code in a Python file named “moveit-bridge.py”. Note that the name of the file can be changed. 
 
 Now the setup is completed and the environment and code is ready to run. Run the command below to give permission and kill unnecessary background processes in order to run the code. 
  
-# kill all other process 
-#kill all python  
+To kill all other process: 
 killall -9 python3 
  
-#give permission 
+to give permission run: 
 sudo chmod 777 /dev/video0 
  
-# If you have video1, run this too: 
+If you have video1, run this too:
+
 sudo chmod 777 /dev/video1 
 sudo usermod -a -G dialout $USER 
 sudo usermod -a -G video $USER 
-# Stop the ROS 2 background daemon 
+
+Stop the ROS 2 background daemon: 
 ros2 daemon stop 
-# Kill any lingering controller_manager or spawner processes 
+
+To Kill any lingering controller_manager or spawner processes:
+
 pkill -9 -f controller_manager 
 pkill -9 -f spawner 
 pkill -9 -f ros2 
 
-#access to acm0 port 
+To access to acm0 port:
 sudo chmod a+rw /dev/ttyACM0 
 
-#launch physical driver in terminal 1 to start the motors  
+To launch physical driver in terminal 1 to start the motors :
 ros2 launch lerobot_controller so101_controller.launch.py use_sim_time:=false 
 
-#run camera teleop in terminal 2 for the teleoperation to detect the hand movements 
+To run camera teleop in terminal 2 for the teleoperation to detect the hand movements:
 python3 camera-teleop.py 
 
-#run bridge teleop in terminal 3 to get values from camera and move the robot to desired 
-locations 
+To run bridge teleop in terminal 3 to get values from camera and move the robot to desired locations:
 python3 moveit-bridge.py  # change name here if needed 
 
 Make sure to run all these three codes in separate terminals parallelly.
 
-METHOD: 2. Hand Tracking using Raspberry Pi 5
+# METHOD: 2. Hand Tracking using Raspberry Pi 5
 
 To use Raspberry Pi to connect and control robot arm like lerobot it is necessary to install the required python version on the Raspberry Pi. The main idea in this method is to control the robot arm using camera and palm tracking lightweight library (media pipe). Media pipe tracks the palm and dynamically calculates the x, y and z axis and updates the coordinates, while the IMU connected to Raspberry tells the orientation of the palm. 
 
@@ -157,14 +159,17 @@ Changes to be made in the file are below, copy paste them at the bottom of the c
 
 Changes 
 
-# Enable the IMX708 (Camera Module 3) 
+Enable the IMX708 (Camera Module 3):
 camera_auto_detect=1 
 dtoverlay=imx708  
-# Enable I2C and SPI buses for sensors/servo drivers 
+
+Enable I2C and SPI buses for sensors/servo drivers:
+
 dtparam=i2c_arm=on 
 dtparam=i2c_vc=on 
 dtparam=spi=on 
-# Allocate Memory for High-Res Camera Frames (Critical Fix for CMA BuAer Error) 
+
+Allocate Memory for High-Res Camera Frames (Critical Fix for CMA BuAer Error): 
 dtoverlay=vc4-kms-v3d, cma-512 
 
 After pasting, press ctrl+o then enter then ctrl+x to save and exit. After saving and exiting reboot the board by running the following command: 
@@ -221,7 +226,7 @@ Wherever the code shows yourPi_IpAddress replace it with the IP address of the R
 
 After testing the camera and imu, Hand tracking can now be done using the given two codes. It is advised to calibrate the robot before testing the code. If lerobot is already calibrated before imu code, then this step can be skipped. The code for hand tracking is provided.
 
-METHOD: 3. ArUco Marker Codes: 
+# METHOD: 3. ArUco Marker Codes: 
 
 This section aims to move the Lerobot according to the movements of the ArUco marker cube (a 3D-printed cube with ArUco markers on 5 sides). These codes for ArUco marker cube are generated using python codes which are provided in this section. 
 
